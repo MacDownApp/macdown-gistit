@@ -9,6 +9,18 @@
 #import <Cocoa/Cocoa.h>
 #import "MacDownGistItController.h"
 
+@interface Gist : NSObject {
+    @public NSString * text;
+    @public NSString * ext;
+    
+}
+
+@end
+
+@implementation Gist
+
+
+@end
 
 static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
 
@@ -45,11 +57,23 @@ static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
         if (range.length > 0) {
             str = [NSString stringWithString: [str substringFromIndex: range.location + range.length]];
             
+            NSRange extRange = [str rangeOfString: @"\n"];
+            
+            NSString * ext = [str substringToIndex: extRange.location];
+            
+            str = [str substringFromIndex: extRange.location + extRange.length];
+            
             NSRange codeRange = [str rangeOfString: @"```"];
             
             NSString * code = [str substringToIndex:codeRange.location];
             
-            [result addObject: code];
+            
+            Gist * gist = [[Gist alloc] init];
+            
+            gist->text = code;
+            gist->ext  = ext;
+            
+            [result addObject: gist];
             
             str = [NSString stringWithString: [str substringFromIndex: codeRange.location + codeRange.length]];
         }
@@ -79,7 +103,7 @@ static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
 
     __block int m = 0;
     
-    for (NSString * block in blocks) {
+    for (Gist * block in blocks) {
         
         NSURL * url = [NSURL URLWithString:MacDownGistListLink];
         NSMutableURLRequest *req =
@@ -89,10 +113,12 @@ static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
         [req addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
         [req addValue:@"application/json" forHTTPHeaderField:@"Accept"];
         
+        NSString * fName = [fileName stringByAppendingString: [@"." stringByAppendingString: block->ext]];
+        
         NSDictionary *object = @{
                                  @"description": @"Uploaded by MacDown. http://macdown.uranusjr.com",
                                  @"public": @YES,
-                                 @"files": @{fileName: @{@"content": block}},
+                                 @"files": @{fName: @{@"content": block->text}},
                                  };
         NSData *data = [NSJSONSerialization dataWithJSONObject:object
                                                        options:0 error:NULL];
@@ -109,11 +135,11 @@ static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
         NSURLSessionTask *task = [session dataTaskWithRequest:req
                                             completionHandler:^(
                                                                 NSData *data, NSURLResponse *res, NSError *error) {
-                                                
-                                                NSHTTPURLResponse *r = (id)res;
-                                                NSString *json = data ?
-                                                [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] :
-                                                nil;
+//                                                
+//                                                NSHTTPURLResponse *r = (id)res;
+//                                                NSString *json = data ?
+//                                                [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] :
+//                                                nil;
                                                 NSDictionary *object = data ?
                                                 [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL] :
                                                 nil;
