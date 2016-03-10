@@ -33,6 +33,35 @@ static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
     return [self gistify:dc.currentDocument];
 }
 
+
+- (NSArray *) blocksFrom: (NSString *) text {
+  
+    NSString * str = text;
+    
+    NSMutableArray * result = [NSMutableArray array];
+    
+    while (true) {
+        NSRange range = [str rangeOfString: @"```"];
+        
+        if (range.length > 0) {
+            str = [NSString stringWithString: [str substringFromIndex: range.location + range.length]];
+            
+            NSRange codeRange = [str rangeOfString: @"```"];
+            
+            NSString * code = [str substringToIndex:codeRange.location];
+            
+            [result addObject: code];
+            
+            str = [NSString stringWithString: [str substringFromIndex: codeRange.location + codeRange.length]];
+        }
+        else break;
+    }
+    
+    return result;
+    
+}
+
+
 - (BOOL)gistify:(NSDocument *)document
 {
     id<MacDownMarkdownSource> markdownSource = (id)document;
@@ -43,6 +72,12 @@ static NSString * const MacDownGistListLink = @"https://api.github.com/gists";
     if (!fileName.length)
         fileName = @"Untitled";
 
+    
+    
+    markdown = [[self blocksFrom: markdown] objectAtIndex: 0];
+    
+    
+    
     NSURL * url = [NSURL URLWithString:MacDownGistListLink];
     NSMutableURLRequest *req =
         [NSMutableURLRequest requestWithURL:url
